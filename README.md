@@ -6,7 +6,7 @@
 
 ## 💡 Overview
 
-This project involves the design and implementation of a relational database in MySQL for managing the operations of a travel agency. The database models core entities such as branches, employees, customers (travelers), trips, destinations, and bookings.
+This project involves the design and implementation of a relational database in MySQL for managing the operations of a travel agency. The database models core entities such as branches, employees, customers (travelers), trips, destinations, and reservations.
 
 
 ---
@@ -14,35 +14,74 @@ This project involves the design and implementation of a relational database in 
 
 ## ⚙️ Design Decisions
 
-### 1. Employee Model (Generalization / Specialization)
-- A central EMPLOYEE entity contains the common attributes for all employees (Name, Address, VAT Number, etc.), with EmployeeID as the primary key.
-- Each employee belongs to one and only one sub-branch (a 1:N Relationship with the SUBBRANCH entity).
-- For each employee specialty, a separate entity was created (DRIVER, IT_SUPERVISOR, ADMINISTRATOR, TOUR_GUIDE).
-- Each of these specialized entities is connected with a 1:1 relationship to the EMPLOYEE entity, as each employee has only one specialty. This approach ensures
-  that each type of employee only has the attributes relevant to them.
+### 1. Branch and Telephone Numbers
 
-### 2. Management of Sub-branches & Staff
-- Each sub-branch (SUBBRANCH) can have one or more telephone numbers. This was modeled using a separate TELEPHONE_NUMBERS entity and a 1:N relationship.
-- Each sub-branch is managed by one and only one ADMINISTRATOR. This is implemented with a 1:1 relationship between the ADMINISTRATOR and SUBBRANCH entities. The
-  Manager attribute in the ADMINISTRATOR entity can be used to indicate if the employee also has managerial duties.
+Each sub-branch can have one or more phone numbers, so we created a separate entity called TELEPHONE_NUMBERS, connected to SUBBRANCH via a many-to-one (M:1) relationship.
 
-### 3. Trips and Destinations Model
-- A trip (TRIP) can include many destinations (DESTINATIONS), and a destination can be part of many different trips. This was implemented with an intermediate
-  entity TRIP_has_DESTINATIONS (an M:N Relationship).
-- The DESTINATIONS entity includes a Next_Destination attribute that refers to the next destination on the route. This field can be NULL if it is the final
-  estination, allowing for the creation of chained routes.
+### 2. Employees and Specializations
 
-### 4. Tour Management
-- A tour guide (TOUR_GUIDE) can speak multiple languages (LANGUAGES). This was modeled with an M:N relationship through the TOUR_GUIDE_has_LANGUAGES entity.
-- A tour (TOUR) is conducted by a specific tour guide in a specific language (an M:1 Relationship with TOUR_GUIDE and LANGUAGES).
-- At a single attraction (SIGHTSEEING), multiple, different tours can be conducted (a 1:N Relationship with the TOURS entity).
+The EMPLOYEE entity contains information about all employees, uniquely identified by EmployeeID.
+It has a one-to-many (1:N) non-identifying relationship with SUBBRANCH, since an employee is assigned to one branch, but the branch’s key is not required to identify an employee.
 
-### 5. Reservations and Travelers
-- The RESERVATION entity is linked to the SUBBRANCH to record the branch where the booking was made. This relationship is non-identifying, as the BranchID is not
-  required to uniquely identify a reservation.
-- A traveler (TRAVELER) can make many reservations, but each reservation belongs to a single traveler (a 1:N Relationship).
-- A traveler can take advantage of special offers (OFFER), with an M:1 relationship from TRAVELER to OFFER.
+To represent employee roles, we created specialization entities:
 
-6. Primary Keys
-- Natural keys were used where feasible (e.g., Company Name in the COMPANY entity).
-- In entities where there was no obvious natural key or to simplify relationships, surrogate keys were added, such as TripID, OfferID, ReservationID, etc.
+DRIVER
+
+IT_SUPERVISOR
+
+ADMINISTRATOR
+
+TOUR_GUIDE
+
+Each specialization has a one-to-one (1:1) relationship with EMPLOYEE, as each employee has exactly one role, and each role instance corresponds to a single employee.
+
+### 3. Administrators
+
+The ADMINISTRATOR entity has a 1:1 relationship with SUBBRANCH, meaning that each branch is managed by exactly one administrator and vice versa.
+A Manager attribute indicates whether a given employee is also the branch manager (YES/NO).
+
+### 4. Tour Guides and Languages
+
+Since a tour guide can speak multiple languages, and each language can be spoken by multiple guides, we modeled this as a many-to-many (M:N) relationship between TOUR_GUIDE and LANGUAGES.
+
+### 5. Drivers
+
+For drivers, the attributes include:
+
+LicenseID: unique code
+
+Type of License: category (e.g., A, B, etc.)
+
+Months of experience and Ability to drive abroad
+
+### 6. Travelers, Offers, and Reservations
+
+The TRAVELER entity connects to OFFER with a many-to-one (M:1) relationship, since multiple travelers may select the same offer.
+It also connects to RESERVATION with a one-to-many (1:N) relationship, as one traveler can make multiple reservations.
+
+The RESERVATION entity includes a foreign key to SUBBRANCH (BranchID) for branch tracking. However, this relationship is non-identifying, as BranchID is not part of the primary key.
+
+### 7. Trips and Destinations
+
+TRIP and DESTINATIONS are linked through a many-to-many (M:N) relationship, since:
+
+A trip can include multiple destinations.
+
+A destination can belong to multiple trips.
+
+DESTINATIONS also contains a Next Destination attribute to indicate travel order.
+If there is no subsequent stop, the field remains NULL.
+
+### 8. Events
+
+The EVENTS entity uses the store address as its primary key and connects to DESTINATIONS via a foreign key relationship.
+This allows the system to record entertainment activities related to each travel destination.
+
+### 9. Sightseeing and Tours
+
+Each SIGHTSEEING location can host multiple tours (1:N relationship with TOURS), for instance, different guided experiences at a large museum.
+TOURS also links to TOUR_GUIDE and LANGUAGES with many-to-one (M:1) relationships, since each tour is conducted by one guide in a single language.
+
+### 10. Unique Identifiers
+
+Custom ID attributes were added where the existing attributes were not sufficient for unique identification of records.
